@@ -148,7 +148,7 @@ main(int argc, char *argv[])
 	int i, ret = 0, tmp;
 
 	if (argc < 2) {
-		fprintf(stderr, "%s [repodir...]\n", argv[0]);
+		fprintf(stderr, "Usage: %s [[-c category] repodir...]\n", argv[0]);
 		return 1;
 	}
 
