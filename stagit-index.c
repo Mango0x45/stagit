@@ -165,7 +165,7 @@ main(int argc, char *argv[])
 		if (!strcmp(argv[i], "-c")) {
 			i++;
 			if (i == argc)
-				err(1, "missing argument");
+				err(EXIT_FAILURE, "missing argument");
 			repodir = argv[i];
 			fputs("<tr class=\"cat\"><td>", stdout);
 			xmlencode(stdout, repodir, strlen(repodir));
@@ -175,12 +175,12 @@ main(int argc, char *argv[])
 
 		repodir = argv[i];
 		if (!realpath(repodir, repodirabs))
-			err(1, "realpath");
+			err(EXIT_FAILURE, "realpath");
 
 		if (git_repository_open_ext(&repo, repodir,
 		    GIT_REPOSITORY_OPEN_NO_SEARCH, NULL)) {
-			fprintf(stderr, "%s: cannot open repository\n", argv[0]);
-			ret = 1;
+			fprintf(stderr, "%s: cannot open repository '%s'\n", argv[0], repodirabs);
+			ret = EXIT_FAILURE;
 			continue;
 		}
 
