@@ -15,9 +15,8 @@ static const char *relpath = "";
 static char description[255] = "Oscar Benedito's Git repositories";
 static char *name = "";
 static char owner[255];
-static char category[255];
 
-void
+static void
 joinpath(char *buf, size_t bufsiz, const char *path, const char *path2)
 {
 	int r;
@@ -30,7 +29,7 @@ joinpath(char *buf, size_t bufsiz, const char *path, const char *path2)
 }
 
 /* Escape characters below as HTML 2.0 / XML 1.0. */
-void
+static void
 xmlencode(FILE *fp, const char *s, size_t len)
 {
 	size_t i;
@@ -47,7 +46,7 @@ xmlencode(FILE *fp, const char *s, size_t len)
 	}
 }
 
-void
+static void
 printtimeshort(FILE *fp, const git_time *intime)
 {
 	struct tm *intm;
@@ -61,7 +60,7 @@ printtimeshort(FILE *fp, const git_time *intime)
 	fputs(out, fp);
 }
 
-void
+static void
 writeheader(FILE *fp)
 {
 	fputs("<!DOCTYPE html>\n"
@@ -82,7 +81,7 @@ writeheader(FILE *fp)
 		"</thead><tbody>\n", fp);
 }
 
-void
+static void
 writefooter(FILE *fp)
 {
 	fputs("</tbody>\n</table>\n</div>\n"
@@ -93,7 +92,7 @@ writefooter(FILE *fp)
 		"</div>\n</body>\n</html>\n", fp);
 }
 
-int
+static int
 writelog(FILE *fp)
 {
 	git_commit *commit = NULL;
