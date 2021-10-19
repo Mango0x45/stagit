@@ -1,4 +1,4 @@
-.Dd December 26, 2015
+.Dd October 16, 2021
 .Dt STAGIT-INDEX 1
 .Os
 .Sh NAME
@@ -6,37 +6,78 @@
 .Nd static git index page generator
 .Sh SYNOPSIS
 .Nm
-.Op Ar repodir...
+.Op Fl a
+.Op Fl d Ar description
+.Op Fl t Ar title
+.Oo
+.Op Fl c Ar category
+.Ar repodir...
+.Oc
 .Sh DESCRIPTION
 .Nm
-will create an index HTML page for the repositories specified and writes
-the HTML data to stdout.
+will create an index HTML page for the repositories specified and writes the HTML data to stdout.
 The repos in the index are in the same order as the arguments
 .Ar repodir
 specified.
 .Pp
 The basename of the directory is used as the repository name.
-The suffix ".git" is removed from the basename, this suffix is commonly used
-for "bare" repos.
+The suffix ".git" is removed from the basename, this suffix is commonly used for "bare" repos.
 .Pp
-The content of the follow files specifies the meta data for each repository:
+Additionally,
+.Nm
+also accepts a variety of command line flags to customize the appearance of the webpage.
+These options are as follows:
+.Bl -tag -witdh Ds
+.It Fl a
+If this flag is specified then the repository author will be listed in the 3rd column of the
+repository list and the last commit time will be shifted to the 4th column.
+The default behavior when this flag is not specified is to not list repository owners.
+The repository owner is read from the
+.Pa .git/owner
+file.
+.It Fl c Ar category
+List all of the following repositories under the category
+.Ar category .
+This flag can be specified multiple times to have multiple different categories of repositories.
+.It Fl d Ar description
+Set the description text shown to the right of the logo in the upper left of the page to
+.Ar description .
+.It Fl t Ar title
+Set the website title (the text between the <title> tags) to
+.Ar title .
+.El
+.Sh FILES
+The content of the following files specify the metadata for each repository:
 .Bl -tag -width Ds
-.It .git/description or description (bare repos).
-description
-.It .git/owner or owner (bare repo).
-owner of repository
+.It Pa .git/description No or Pa description (bare repos).
+The repository description.
+.It Pa .git/owner No or Pa owner No (bare repos).
+The owner of the repository.
 .El
 .Pp
-For changing the style of the page you can use the following files:
+If you would like to configure the style of any of the pages, you can use the following files:
 .Bl -tag -width Ds
-.It favicon.ico
-favicon image.
-.It logo.svg
-square logo.
-.It style.css
-CSS stylesheet.
+.It Pa favicon.ico
+The website favicon.
+.It Pa logo.svg
+The webstie logo displayed on the upper left.
+This file overwrites the favicon if it exists.
+.It Pa style.css
+The websites CSS stylesheet.
 .El
+.Sh EXAMPLES
+Create an index page for the Mango Man listing all of the repositories stored in
+.Pa /srv/git :
+.Pp
+.Dl $ stagit-index -t \(dqMango Mans Repos\(dq -d \(dqThe Mango Tree\(dq /srv/git/*
+.Pp
+Create an index page making use of categories:
+.Pp
+.Dl $ stagit-index -c \(dqLibraries\(dq libvim.git/ libcalc.git/ -c \(dqConfigurations\(dq dwm/ st/
+.Sh EXIT STATUS
+.Ex -std
 .Sh SEE ALSO
 .Xr stagit 1
 .Sh AUTHORS
 .An Hiltjo Posthuma Aq Mt hiltjo@codemadness.org
+.An Thomas Voss Aq Mt thomasvoss@live.com

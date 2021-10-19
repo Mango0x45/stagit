@@ -1,5 +1,6 @@
 #include <err.h>
 #include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,92 +9,54 @@
 
 #include <git2.h>
 
+#include "utils.h"
+
 static git_repository *repo;
 
 static const char *relpath = "";
 
-static char description[255] = "Oscar Benedito's Git repositories";
+static bool print_author;
+static char description[255];
+static char *page_description; /* The description that appears to the right of the logo */
+static char *title;            /* The page title (the text in the <title> tags) */
 static char *name = "";
 static char owner[255];
 
+/* This function writes the index page up to the repository list */
 static void
-joinpath(char *buf, size_t bufsiz, const char *path, const char *path2)
+writeheader(void)
 {
-	int r;
-
-	r = snprintf(buf, bufsiz, "%s%s%s",
-		path, path[0] && path[strlen(path) - 1] != '/' ? "/" : "", path2);
-	if (r < 0 || (size_t)r >= bufsiz)
-		errx(1, "path truncated: '%s%s%s'",
-			path, path[0] && path[strlen(path) - 1] != '/' ? "/" : "", path2);
+	fputs("<!DOCTYPE html>\n<html>\n<head>\n"
+	      "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"/>\n"
+	      "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/>\n"
+	      "<title>", stdout);
+	if (title)
+		xmlencode(stdout, title, strlen(title));
+	printf("</title>\n<link rel=\"icon\" type=\"image/svg+xml\" href=\"%slogo.svg\"/>\n", relpath);
+	printf("<link rel=\"alternate icon\" href=\"%sfavicon.ico\"/>\n", relpath);
+	printf("<link rel=\"stylesheet\" type=\"text/css\" href=\"%sstyle.css\"/>\n", relpath);
+	puts("</head>\n<body id=\"home\">\n<table><tbody>\n<tr><td>"
+	     "<img src=\"logo.svg\" alt=\"Site logo\" width=32 height=32></td>");
+	fputs("<td><span class=\"desc\">", stdout);
+	if (page_description)
+		xmlencode(stdout, page_description, strlen(page_description));
+	printf("</span></td></tr>\n</tbody></table>\n<hr/>\n<div id=\"content\">\n"
+	       "<h2 id=\"repositories\">Repositories</h2>\n<hr/><div class=\"table-container\">\n"
+	       "<table id=\"index\"><thead>\n<tr><td><b>Name</b></td><td><b>Description</b></td>"
+	       "%s<td><b>Last commit</b></td></tr></thead><tbody>\n",
+	       print_author ? "<td><b>Author</b></td>" : "");
 }
 
-/* Escape characters below as HTML 2.0 / XML 1.0. */
+/* This function writes the remainder of the index page from after the repository list */
 static void
-xmlencode(FILE *fp, const char *s, size_t len)
+writefooter(void)
 {
-	size_t i;
-
-	for (i = 0; *s && i < len; s++, i++) {
-		switch(*s) {
-		case '<':  fputs("&lt;",   fp); break;
-		case '>':  fputs("&gt;",   fp); break;
-		case '\'': fputs("&#39;" , fp); break;
-		case '&':  fputs("&amp;",  fp); break;
-		case '"':  fputs("&quot;", fp); break;
-		default:   putc(*s, fp);
-		}
-	}
+	puts("</tbody>\n</table>\n</div>\n<hr/>\n</body>\n</html>");
 }
 
-static void
-printtimeshort(FILE *fp, const git_time *intime)
-{
-	struct tm *intm;
-	time_t t;
-	char out[32];
-
-	t = (time_t)intime->time;
-	if (!(intm = gmtime(&t)))
-		return;
-	strftime(out, sizeof(out), "%Y-%m-%d %H:%M", intm);
-	fputs(out, fp);
-}
-
-static void
-writeheader(FILE *fp)
-{
-	fputs("<!DOCTYPE html>\n"
-		"<html>\n<head>\n"
-		"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n"
-		"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n"
-		"<title>", fp);
-	xmlencode(fp, description, strlen(description));
-	fprintf(fp, "</title>\n<link rel=\"icon\" type=\"image/svg+xml\" href=\"../%slogo.svg\" />\n", relpath);
-	fprintf(fp, "<link rel=\"alternate icon\" href=\"%sfavicon.ico\" />\n", relpath);
-	fprintf(fp, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%sstyle.css\" />\n", relpath);
-	fputs("</head>\n<body id=\"home\">\n<h1>", fp);
-	xmlencode(fp, description, strlen(description));
-	fputs("</h1>\n<div id=\"content\">\n"
-		"<h2 id=\"repositories\">Repositories</h2>\n"
-		"<div class=\"table-container\">\n<table id=\"index\"><thead>\n"
-		"<tr><td><b>Name</b></td><td><b>Description</b></td><td><b>Last commit</b></td></tr>"
-		"</thead><tbody>\n", fp);
-}
-
-static void
-writefooter(FILE *fp)
-{
-	fputs("</tbody>\n</table>\n</div>\n"
-		"<h2 id=\"contribute\">Contribute</h2>\n"
-		"<p>The best way to contribute to my repositories is through e-mail, check out <a href=\"https://git-send-email.io\">git-send-email.io</a> if you don’t know how to do that. Send your patches to <a href=\"mailto:patches@oscarbenedito.com\">patches@oscarbenedito.com</a> and change the subject prefix to specify the repository you are sending the patch for. You can do that running the following command from the git repository:</p>\n"
-		"<pre><code>git config format.subjectPrefix \"PATCH &lt;name-of-repository&gt;\"</code></pre>\n"
-		"<p>You can also contribute on <a href=\"https://github.com/oscarbenedito\">GitHub</a> doing pull requests (all my public repositories are mirrored there, as well as <a href=\"https://git.sr.ht/~ob\">Sourcehut</a>).</p>\n"
-		"</div>\n</body>\n</html>\n", fp);
-}
-
+/* This function lists the given repository in the repostitory list */
 static int
-writelog(FILE *fp)
+writelog(void)
 {
 	git_commit *commit = NULL;
 	const git_signature *author;
@@ -105,31 +68,38 @@ writelog(FILE *fp)
 	git_revwalk_new(&w, repo);
 	git_revwalk_push_head(w);
 
-	if (git_revwalk_next(&id, w) ||
-	    git_commit_lookup(&commit, repo, &id)) {
+	if (git_revwalk_next(&id, w) || git_commit_lookup(&commit, repo, &id)) {
 		ret = -1;
 		goto err;
 	}
 
 	author = git_commit_author(commit);
 
-	/* strip .git suffix */
+	/* Strip .git suffix */
 	if (!(stripped_name = strdup(name)))
 		err(1, "strdup");
 	if ((p = strrchr(stripped_name, '.')))
 		if (!strcmp(p, ".git"))
 			*p = '\0';
 
-	fputs("<tr class=\"repo\"><td><a href=\"", fp);
-	xmlencode(fp, stripped_name, strlen(stripped_name));
-	fputs("/\">", fp);
-	xmlencode(fp, stripped_name, strlen(stripped_name));
-	fputs("</a></td><td>", fp);
-	xmlencode(fp, description, strlen(description));
-	fputs("</td><td>", fp);
+	fputs("<tr class=\"repo\"><td><a href=\"", stdout);
+	xmlencode(stdout, stripped_name, strlen(stripped_name));
+	fputs("/\">", stdout);
+	xmlencode(stdout, stripped_name, strlen(stripped_name));
+	fputs("</a></td><td>", stdout);
+	xmlencode(stdout, description, strlen(description));
+	fputs("</td>", stdout);
+
+	if (print_author) {
+		fputs("<td>", stdout);
+		xmlencode(stdout, owner, strlen(owner));
+		fputs("</td>", stdout);
+	}
+
+	fputs("<td>", stdout);
 	if (author)
-		printtimeshort(fp, &(author->when));
-	fputs("</td></tr>\n", fp);
+		printtimez(stdout, &(author->when), SHORT_DATE_FMT);
+	puts("</td></tr>");
 
 	git_commit_free(commit);
 err:
@@ -145,23 +115,47 @@ main(int argc, char *argv[])
 	FILE *fp;
 	char path[PATH_MAX], repodirabs[PATH_MAX + 1];
 	const char *repodir;
-	int i, ret = 0, tmp;
+	int i, ret = 0, tmp, opt;
 
 	if (argc < 2) {
-		fprintf(stderr, "Usage: %s [[-c category] repodir...]\n", argv[0]);
-		return 1;
+		fprintf(stderr, "Usage: %s [-a] [-d description] [-t title] "
+				"[[-c category] repodir...]\n", argv[0]);
+		return EXIT_FAILURE;
 	}
-
-	git_libgit2_init();
 
 #ifdef __OpenBSD__
 	if (pledge("stdio rpath", NULL) == -1)
 		err(1, "pledge");
 #endif
 
-	writeheader(stdout);
+	while ((opt = getopt(argc, argv, "acd:t:")) != -1) {
+		switch (opt) {
+		case 'a':
+			print_author = true;
+			break;
+		case 'c':
+			optind--;
+			goto opt_exit;
+		case 'd':
+			page_description = optarg;
+			break;
+		case 't':
+			title = optarg;
+			break;
+		default:
+			return EXIT_FAILURE;
+		}
+	}
 
-	for (i = 1; i < argc; i++) {
+opt_exit:
+	argv += optind;
+	argc -= optind;
+
+	git_libgit2_init();
+
+	writeheader();
+
+	for (i = 0; i < argc; i++) {
 		if (!strcmp(argv[i], "-c")) {
 			i++;
 			if (i == argc)
@@ -169,7 +163,7 @@ main(int argc, char *argv[])
 			repodir = argv[i];
 			fputs("<tr class=\"cat\"><td>", stdout);
 			xmlencode(stdout, repodir, strlen(repodir));
-			fputs("</td><td></td><td></td></tr>\n", stdout);
+			printf("</td><td></td><td></td>%s\n", print_author ? "<td></td>" : "");
 			continue;
 		}
 
@@ -177,20 +171,19 @@ main(int argc, char *argv[])
 		if (!realpath(repodir, repodirabs))
 			err(EXIT_FAILURE, "realpath");
 
-		if (git_repository_open_ext(&repo, repodir,
-		    GIT_REPOSITORY_OPEN_NO_SEARCH, NULL)) {
+		if (git_repository_open_ext(&repo, repodir, GIT_REPOSITORY_OPEN_NO_SEARCH, NULL)) {
 			fprintf(stderr, "%s: cannot open repository '%s'\n", argv[0], repodirabs);
 			ret = EXIT_FAILURE;
 			continue;
 		}
 
-		/* use directory name as name */
+		/* Use directory name as name */
 		if ((name = strrchr(repodirabs, '/')))
 			name++;
 		else
 			name = "";
 
-		/* read description or .git/description */
+		/* Read description or .git/description */
 		joinpath(path, sizeof(path), repodir, "description");
 		if (!(fp = fopen(path, "r"))) {
 			joinpath(path, sizeof(path), repodir, ".git/description");
@@ -206,7 +199,7 @@ main(int argc, char *argv[])
 			fclose(fp);
 		}
 
-		/* read owner or .git/owner */
+		/* Read owner or .git/owner */
 		joinpath(path, sizeof(path), repodir, "owner");
 		if (!(fp = fopen(path, "r"))) {
 			joinpath(path, sizeof(path), repodir, ".git/owner");
@@ -219,11 +212,11 @@ main(int argc, char *argv[])
 			owner[strcspn(owner, "\n")] = '\0';
 			fclose(fp);
 		}
-		writelog(stdout);
+		writelog();
 	}
-	writefooter(stdout);
+	writefooter();
 
-	/* cleanup */
+	/* Cleanup */
 	git_repository_free(repo);
 	git_libgit2_shutdown();
 

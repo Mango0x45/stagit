@@ -1,14 +1,29 @@
+<!-- vi: tw=100
+ -->
+
 stagit
 ======
 
-Personal fork of static git page generator. It generates static HTML pages for a
-git repository.
+This is a fork of [Oscar Benedito's fork](https://git.oscarbenedito.com/stagit/) of stagit. Like the
+original it generates static HTML files for a git repository, but has a few new features.
 
-This fork uses [md4c](https://github.com/mity/md4c) to convert the README
-markdown into HTML and then shows it in an about page for each repository, this
-adds a new dependency. On top of that, the assets have been changed, creating a
-personal theme. The scripts have also been changed to fit my needs.
+This fork uses [md4c](https://github.com/mity/md4c) to convert the README markdown into HTML and
+then shows it in an about page for each repository, this adds a new dependency.
 
+
+New Features
+------------
+
+- Use .svg files for the favicon if desired and for the logo
+- Categorize repositories on the index page
+- Make the author field on the index page optional
+- Allow for the index page description to be customized
+- Allow for the index page title to be customized
+- Display files in a sane manner, i.e. to access files in a folder, you must actually open the
+  folder, they are not all spat out on one page.
+- REAMDE files written in markdown are displayed as HTML on an `about.html` page. If you have one,
+  this is the default page when visiting a repository. Otherwise the default is the commit log.
+- Better documentation in manpages (and code in the future maybe).
 
 Usage
 -----
@@ -103,11 +118,10 @@ Set clone url for a directory of repos
 Update files on git push
 ------------------------
 
-Using a post-receive hook the static files can be automatically updated. Keep in
-mind git push -f can change the history and the commits may need to be
-recreated. This is because stagit checks if a commit file already exists. It
-also has a cache (-c) option which can conflict with the new history. See
-stagit(1).
+Using a post-receive hook the static files can be automatically updated. Keep in mind git push -f
+can change the history and the commits may need to be recreated. This is because stagit checks if a
+commit file already exists. It also has a cache (-c) option which can conflict with the new history.
+See stagit(1).
 
 git post-receive hook (repo/.git/hooks/post-receive):
 
@@ -134,17 +148,14 @@ Create .tar.gz archives by tag
 ------------------------------
 
 	#!/bin/sh
+
 	name="stagit"
+
 	mkdir -p archives
 	git tag -l | while read -r t; do
 		f="archives/${name}-$(echo "${t}" | tr '/' '_').tar.gz"
 		test -f "${f}" && continue
-		git archive \
-			--format tar.gz \
-			--prefix "${t}/" \
-			-o "${f}" \
-			-- \
-			"${t}"
+		git archive --format tar.gz --prefix "${t}/" -o "${f}" -- "${t}"
 	done
 
 
