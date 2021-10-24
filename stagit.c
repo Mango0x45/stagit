@@ -470,7 +470,7 @@ writeheader(FILE *fp, const char *title)
 	if (contribute)
 		fprintf(fp, " | <a href=\"%sfile/%s.html\">Contribute</a>", relpath, contribute);
 	if (readme)
-		fprintf(fp, "<a href=\"%sreadme.html\">README</a> | ", relpath);
+		fprintf(fp, " | <a href=\"%sreadme.html\">README</a>", relpath);
 	if (license)
 		fprintf(fp, " | <a href=\"%sfile/%s.html\">LICENSE</a>", relpath, license);
 	fputs("</p>\n</div>\n<hr/>\n<div id=\"content\">\n", fp);
