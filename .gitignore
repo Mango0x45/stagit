@@ -1,3 +1,5 @@
 *.o
+.cache/
 stagit
 stagit-index
+compile_commands.json
