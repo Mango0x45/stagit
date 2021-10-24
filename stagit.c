@@ -462,17 +462,17 @@ writeheader(FILE *fp, const char *title)
 		fputs("</a></p>\n", fp);
 	}
 	fputs("</td></tr></table>\n<p>", fp);
-	if (readme)
-		fprintf(fp, "<a href=\"%sabout.html\">About</a> | ", relpath);
 	fprintf(fp, "<a href=\"%slog.html\">Log</a> | ", relpath);
 	fprintf(fp, "<a href=\"%sfiles.html\">Files</a> | ", relpath);
 	fprintf(fp, "<a href=\"%srefs.html\">Refs</a>", relpath);
 	if (submodules)
 		fprintf(fp, " | <a href=\"%sfile/%s.html\">Submodules</a>", relpath, submodules);
-	if (license)
-		fprintf(fp, " | <a href=\"%sfile/%s.html\">License</a>", relpath, license);
 	if (contribute)
 		fprintf(fp, " | <a href=\"%sfile/%s.html\">Contribute</a>", relpath, contribute);
+	if (readme)
+		fprintf(fp, "<a href=\"%sreadme.html\">README</a> | ", relpath);
+	if (license)
+		fprintf(fp, " | <a href=\"%sfile/%s.html\">LICENSE</a>", relpath, license);
 	fputs("</p>\n</div>\n<hr/>\n<div id=\"content\">\n", fp);
 }
 
@@ -1325,15 +1325,15 @@ main(int argc, char *argv[])
 		submodules = ".gitmodules";
 	git_object_free(obj);
 
-	/* about page */
+	/* README page */
 	if (readme) {
-		fp = efopen("about.html", "w");
-		writeheader(fp, "About");
+		fp = efopen("readme.html", "w");
+		writeheader(fp, "README");
 		git_revparse_single(&obj, repo, readmefiles[r]);
 		const char *s = git_blob_rawcontent((git_blob *)obj);
 		switch (r) {
 		case PLAINTEXT:
-			fputs("<pre id=\"about\">", fp);
+			fputs("<pre id=\"readme\">", fp);
 			xmlencode(fp, s, strlen(s));
 			fputs("</pre>\n", fp);
 			break;
