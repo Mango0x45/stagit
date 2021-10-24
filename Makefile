@@ -74,15 +74,6 @@ install: all
 	mkdir -p ${DESTDIR}${PREFIX}/bin
 	cp -f ${BIN} ${DESTDIR}${PREFIX}/bin
 	for f in ${BIN}; do chmod 755 ${DESTDIR}${PREFIX}/bin/$$f; done
-	# installing example files.
-	mkdir -p ${DESTDIR}${DOCPREFIX}
-	cp -f style.css\
-		favicon.ico\
-		logo.svg\
-		example_create.sh\
-		example_post-receive.sh\
-		README.md\
-		${DESTDIR}${DOCPREFIX}
 	# installing manual pages.
 	mkdir -p ${DESTDIR}${MANPREFIX}/man1
 	cp -f ${MAN1} ${DESTDIR}${MANPREFIX}/man1
@@ -91,15 +82,6 @@ install: all
 uninstall:
 	# removing executable files.
 	for f in ${BIN}; do rm -f ${DESTDIR}${PREFIX}/bin/$$f; done
-	# removing example files.
-	rm -f \
-		${DESTDIR}${DOCPREFIX}/style.css\
-		${DESTDIR}${DOCPREFIX}/favicon.ico\
-		${DESTDIR}${DOCPREFIX}/logo.svg\
-		${DESTDIR}${DOCPREFIX}/example_create.sh\
-		${DESTDIR}${DOCPREFIX}/example_post-receive.sh\
-		${DESTDIR}${DOCPREFIX}/README.md
-	-rmdir ${DESTDIR}${DOCPREFIX}
 	# removing manual pages.
 	for m in ${MAN1}; do rm -f ${DESTDIR}${MANPREFIX}/man1/$$m; done
 
