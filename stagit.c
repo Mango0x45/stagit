@@ -69,7 +69,7 @@ static char *strippedname = "";
 static char description[255];
 static char cloneurl[1024];
 static char *submodules;
-static char *licensefiles[] = { "HEAD:LICENSE", "HEAD:LICENSE.md", "HEAD:COPYING" };
+static char *licensefiles[] = { "HEAD:UNLICENSE", "HEAD:LICENSE", "HEAD:LICENSE.md", "HEAD:COPYING" };
 static char *license;
 static char *readmefiles[] = { "HEAD:README", "HEAD:README.md" };
 static char *readme;
