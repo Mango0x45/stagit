@@ -1,5 +1,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 #include <err.h>
 #include <errno.h>
@@ -19,6 +20,17 @@
 #include "utils.h"
 
 #define LEN(s)    (sizeof(s)/sizeof(*s))
+
+enum pipedescriptors {
+	PIPE_READ,
+	PIPE_WRITE
+};
+
+enum readmetype {
+	PLAINTEXT,
+	MARKDOWN,
+	RESTRUCTUREDTEXT
+};
 
 struct deltainfo {
 	git_patch *patch;
@@ -71,7 +83,7 @@ static char cloneurl[1024];
 static char *submodules;
 static char *licensefiles[] = { "HEAD:UNLICENSE", "HEAD:LICENSE", "HEAD:LICENSE.md", "HEAD:COPYING" };
 static char *license;
-static char *readmefiles[] = { "HEAD:README", "HEAD:README.md" };
+static char *readmefiles[] = { "HEAD:README", "HEAD:README.md", "HEAD:README.rst" };
 static char *readme;
 static char *contributefiles[] = { "HEAD:CONTRIBUTING", "HEAD:CONTRIBUTING.md" };
 static char *contribute;
@@ -1319,17 +1331,48 @@ main(int argc, char *argv[])
 		writeheader(fp, "About");
 		git_revparse_single(&obj, repo, readmefiles[r]);
 		const char *s = git_blob_rawcontent((git_blob *)obj);
-		if (r == 1) {
+		switch (r) {
+		case PLAINTEXT:
+			fputs("<pre id=\"about\">", fp);
+			xmlencode(fp, s, strlen(s));
+			fputs("</pre>\n", fp);
+			break;
+		case MARKDOWN:;
 			git_off_t len = git_blob_rawsize((git_blob *)obj);
 			fputs("<div class=\"md\">", fp);
 			if (md_html(s, len, process_output_md, fp, MD_FLAG_TABLES | MD_FLAG_TASKLISTS |
 			    MD_FLAG_PERMISSIVEEMAILAUTOLINKS | MD_FLAG_PERMISSIVEURLAUTOLINKS, 0))
 				err(EXIT_FAILURE, "error parsing markdown");
 			fputs("</div>\n", fp);
-		} else {
-			fputs("<pre id=\"about\">", fp);
-			xmlencode(fp, s, strlen(s));
-			fputs("</pre>\n", fp);
+			break;
+		case RESTRUCTUREDTEXT:
+			fputs("<div class=\"rst\">", fp);
+			fflush(fp);
+
+			int fds[2];
+			if (pipe(fds) == -1)
+				err(EXIT_FAILURE, "failed to create pipe");
+
+			pid_t pid = fork();
+			switch (pid) {
+			case -1:
+				err(EXIT_FAILURE, "failed to fork process");
+			case 0:;
+				(void) dup2(fds[PIPE_READ], STDIN_FILENO);
+				close(fds[PIPE_WRITE]);
+				dup2(fileno(fp), STDOUT_FILENO);
+				if (execlp("pandoc", "pandoc", "-f", "rst", "-t", "html", NULL)
+						== -1)
+					err(EXIT_FAILURE, "failed to exec pandoc");
+				return EXIT_SUCCESS;
+			default:
+				(void) write(fds[PIPE_WRITE], s, strlen(s));
+				(void) close(fds[PIPE_READ]);
+				(void) close(fds[PIPE_WRITE]);
+				(void) wait(NULL);
+			}
+
+			fputs("</div>\n", fp);
 		}
 		git_object_free(obj);
 		writefooter(fp);

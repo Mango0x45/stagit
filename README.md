@@ -8,7 +8,8 @@ This is a fork of [Oscar Benedito's fork](https://git.oscarbenedito.com/stagit/)
 original it generates static HTML files for a git repository, but has a few new features.
 
 This fork uses [md4c](https://github.com/mity/md4c) to convert the README markdown into HTML and
-then shows it in an about page for each repository, this adds a new dependency.
+then shows it in an about page for each repository, this adds a new dependency. Additionally this
+fork uses [pandoc](https://github.com/jgm/pandoc) to convert READMEs using reStructuredText to HTML.
 
 
 New Features
@@ -21,8 +22,11 @@ New Features
 - Allow for the index page title to be customized
 - Display files in a sane manner, i.e. to access files in a folder, you must actually open the
   folder, they are not all spat out on one page.
+- The Unlicense is listed as a license.
 - REAMDE files written in markdown are displayed as HTML on an `about.html` page. If you have one,
   this is the default page when visiting a repository. Otherwise the default is the commit log.
+- README files written in reStructuredText are displayed as HTML just like markdown, however this
+  requires `pandoc(1)` to be installed.
 - Better documentation in manpages (and code in the future maybe).
 
 Usage
