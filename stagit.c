@@ -1361,8 +1361,8 @@ main(int argc, char *argv[])
 				(void) dup2(fds[PIPE_READ], STDIN_FILENO);
 				close(fds[PIPE_WRITE]);
 				dup2(fileno(fp), STDOUT_FILENO);
-				if (execlp("pandoc", "pandoc", "-f", "rst", "-t", "html", NULL)
-						== -1)
+				if (execlp("pandoc", "pandoc", "--tab-stop=8", "-f", "rst", "-t",
+						"html", NULL) == -1)
 					err(EXIT_FAILURE, "failed to exec pandoc");
 				return EXIT_SUCCESS;
 			default:
